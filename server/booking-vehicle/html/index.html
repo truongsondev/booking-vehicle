@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo - Upload Large File</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.9.0/axios.min.js"></script>
+  </head>
+  <body>
+    <h1>Upload Large File</h1>
+    <input id="fileInput" type="file" multiple />
+    <script>
+      const inputFile = document.querySelector('#fileInput');
+      const chunkSize = 100 * 1024; // 100KB
+
+      inputFile.addEventListener('change', async () => {
+        const file = inputFile.files[0];
+        const chunk = [];
+        let startPos = 0;
+        while (startPos < file.size) {
+          chunk.push(file.slice(startPos, startPos + chunkSize));
+          startPos += chunkSize;
+        }
+        if (!chunk.length) {
+          return;
+        }
+        const fileNameRandom = Math.random().toString().slice(2, 7);
+        const chunkPromise = [];
+        chunk.map((ck, index) => {
+          const data = new FormData();
+          const nameFinal = fileNameRandom + '-' + file.name + '-' + index;
+          data.set('name', nameFinal);
+
+          data.append('files', ck);
+          chunkPromise.push(
+            axios.post('http://localhost:3000/user/upload/large-file', data),
+          );
+        });
+        await Promise.all(chunkPromise);
+        const rs = await axios.get(
+          `http://localhost:3000/user/merge/file?file=chunks-${fileNameRandom}-${file.name}`,
+        );
+      });
+    </script>
+  </body>
+</html>
